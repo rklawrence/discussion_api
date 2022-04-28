@@ -1,10 +1,12 @@
-from matplotlib.animation import FuncAnimation
 import requests
 from random import choice
-
+from datetime import datetime, timedelta
+from time import sleep
+from random import randrange
 
 ACCESS_TOKEN = ""
 
+messages = [""]
 
 def generate_message() -> str:
     emotion_list = ["Ecstatic",
@@ -61,7 +63,7 @@ def generate_message() -> str:
         "watching youtube videos",
         "Playing D&D"
     ]
-    styles = ["emotion", "thought", "thought", "activity", "activity"]
+    styles = ["thought", "activity", "activity"]
     style = choice(styles)
     if style == "emotion":
         emotion = choice(emotion_list).lower()
@@ -78,6 +80,7 @@ def generate_message() -> str:
 def post_discussion_entry(course_id: int, discussion_id: int) -> int:
     url = f"https://canvas.unl.edu/api/v1/courses/{course_id}/discussion_topics/{discussion_id}/entries"
     message = generate_message()
+    print(message)
     request = requests.post(url, data={"message": message}, params={"access_token":ACCESS_TOKEN}, allow_redirects=False)
     return request.text
 
@@ -88,7 +91,70 @@ def get_discussion_entries(course_id: int, discussion_id: int) -> str:
     return request.text
 
 
+# def get_non_commented_dates(course_id: int, discussion_id: int, user_id: int) -> list:
+#     url = f"http://canvas.unl.edu/api/v1/courses/{course_id}/discussion_topics/{discussion_id}/entries?user_id={user_id}"
+#     params = {"access_token": ACCESS_TOKEN}
+#     request = requests.get(url, params=params)
+#     # print(request.json())
+#     print(request.text)
+#     json_data = request.json()
+#     # print(len(json_data))
+#     for response in json_data:
+#         print(response)
+#     pass
+
+def makeup_checkin(course_id: int, discussion_id: int) -> None:
+    url = f"https://canvas.unl.edu/api/v1/courses/{course_id}/discussion_topics/{discussion_id}/entries"
+
+    dates = [
+        datetime(2022, 2, 22),
+        datetime(2022, 3, 1),
+        datetime(2022, 3, 10),
+        datetime(2022, 3, 24),
+        datetime(2022, 3, 29),
+        datetime(2022, 3, 31),
+        datetime(2022, 4, 12),
+        datetime(2022, 4, 22),
+        datetime(2022, 4, 26),
+    ]
+    current_date = datetime(2022, 2, 22)
+    end_date = datetime(2022, 4, 25)
+    generated_messages = list()
+    while current_date < end_date:
+        if current_date not in dates:
+            date_string = current_date.strftime("%b. %-d")
+            message = f"This is making up for {date_string}: "
+            candidate_message = ""
+            while candidate_message in messages:
+                candidate_message = generate_message()
+            messages.append(candidate_message)
+            message += candidate_message
+            print(message)
+            generated_messages.append(message)
+        if current_date.weekday() == 1:
+            add_date = 2
+        else:
+            add_date = 5
+        current_date += timedelta(days=add_date)
+        if current_date in dates:
+            print("duplicate date")
+
+    for message in generated_messages:
+        request = requests.post(url, data={"message": message}, params={"access_token":ACCESS_TOKEN}, allow_redirects=False)
+        if request.status_code != 200:
+            print(f"There was an error posting {message}")
+            print(f"Response: {request.text}")
+            break
+        sleep(randrange(180, 300))
+
+
+
 if __name__ == '__main__':
     course_id = 123218
     discussion_id = 895856
-    response = post_discussion_entry(course_id=course_id, discussion_id=discussion_id)
+    user_id = 118864
+    # makeup_checkin(course_id, discussion_id)
+    # print(len(messages))
+    # response = post_discussion_entry(course_id=course_id, discussion_id=discussion_id)
+    # print(response)
+    # get_non_commented_dates(course_id=course_id, discussion_id=discussion_id, user_id=user_id)
